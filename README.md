@@ -1,4 +1,4 @@
-<img src="src-tauri/icons/128x128.png" width="88" alt="">
+<img src="src-tauri/icons/128x128@2x.png" width="88" height="88" alt="Workbench icon: a white W on an indigo tile">
 
 # Workbench
 
