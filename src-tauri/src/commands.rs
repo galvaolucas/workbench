@@ -213,7 +213,7 @@ pub struct DeskView {
     yours: Vec<db::PullRequestRow>,
     watching: Vec<db::PullRequestRow>,
     last_synced_at: Option<i64>,
-    /// Organisations this token can actually see. An org you work in that is
+    /// Organizations this token can actually see. An org you work in that is
     /// missing here has not approved the app, and its pull requests will be
     /// absent from search with no error of any kind.
     visible_orgs: Vec<String>,

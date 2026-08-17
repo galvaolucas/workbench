@@ -119,7 +119,7 @@ export default function Desk({ account, onSignedOut }: Props) {
                   className="btn"
                   onClick={() => void openExternal(data.orgAccessUrl!)}
                 >
-                  Organisation access
+                  Organization access
                 </button>
               )}
               <p className="hint">
