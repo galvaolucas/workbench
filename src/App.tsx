@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { appInfo, authStatus, onAuthCompleted, onAuthFailed, type Account, type AppInfo } from "@/lib/ipc";
-import { Gear, Lanes, Notes, Sunrise } from "@/components/icons";
+import { Gear, Lanes, Mark, Notes } from "@/components/icons";
 import Connect from "@/screens/Connect";
 import Desk from "@/screens/Desk";
 import Settings from "@/screens/Settings";
@@ -56,7 +56,7 @@ export default function App() {
   return (
     <div className="shell">
       <nav className="rail" data-tauri-drag-region>
-        <Sunrise size={28} className="rail-mark" />
+        <Mark size={26} className="rail-mark" />
         <button
           className={tab === "today" ? "rail-btn on" : "rail-btn"}
           onClick={() => setTab("today")}

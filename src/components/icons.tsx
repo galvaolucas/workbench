@@ -18,15 +18,16 @@ const base = (size: number) => ({
   strokeLinejoin: "round" as const,
 });
 
-/** The mark: sun over a horizon. Same shape as the app icon. */
-export function Sunrise({ size = 20, className }: Props) {
+/** The mark: the W, built like a sawhorse. Same shape as the app icon. */
+export function Mark({ size = 20, className }: Props) {
   return (
-    <svg {...base(size)} className={className} aria-hidden="true">
-      <path d="M3.5 18h17" />
-      <path d="M7 18a5 5 0 0 1 10 0" />
-      <path d="M12 3.5v2.4" />
-      <path d="M4.9 7.4 6.6 9.1" />
-      <path d="M19.1 7.4 17.4 9.1" />
+    <svg
+      {...base(size)}
+      strokeWidth={2.4}
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3.2 6.5 L 8 17 L 12 9.5 L 16 17 L 20.8 6.5" />
     </svg>
   );
 }
