@@ -13,7 +13,7 @@ nothing about your work leaves your computer.
 
 ## Why
 
-As a tech lead your attention gets fragmented by tool, not by task. The PR you
+Sometimes your attention gets fragmented by tool, not by task. The PR you
 opened is in one tab, the three you owe reviews on are in another, the Actions
 run you triggered is a third, and the thread where someone `@`-mentioned you is
 a fourth. Nothing tells you which of them changed while you were writing code —
