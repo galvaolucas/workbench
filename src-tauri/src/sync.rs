@@ -17,6 +17,7 @@ use crate::github;
 use crate::state::AppState;
 
 pub const DESK_KEY: &str = "desk";
+pub const VISIBLE_ORGS_KEY: &str = "visible_orgs";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,6 +45,13 @@ pub async fn run(app: &AppHandle) -> Result<SyncOutcome> {
     };
 
     let data = github::desk(&http, &host, &token, &account.login).await?;
+    let visible_orgs: Vec<String> = data
+        .viewer
+        .organizations
+        .nodes
+        .iter()
+        .map(|o| o.login.clone())
+        .collect();
     let (cost, remaining) = data
         .rate_limit
         .as_ref()
@@ -74,6 +82,9 @@ pub async fn run(app: &AppHandle) -> Result<SyncOutcome> {
     }
     let retired = db::retire_missing(&tx, account.id, synced_at)?;
     db::set_sync_meta(&tx, DESK_KEY, synced_at)?;
+    // Which organisations this token can actually reach. An org missing from
+    // here is invisible to search, silently — see the Desk's empty state.
+    db::setting_set(&tx, VISIBLE_ORGS_KEY, &visible_orgs.join(","))?;
     if first_sync {
         db::mark_all_notified(&tx, account.id)?;
     }
@@ -93,10 +104,11 @@ pub async fn run(app: &AppHandle) -> Result<SyncOutcome> {
     };
 
     log::info!(
-        "sync: {} PRs, {} events, {} retired, cost {} ({} left)",
+        "sync: {} PRs, {} events, {} retired, orgs [{}], cost {} ({} left)",
         outcome.pull_requests,
         outcome.events,
         outcome.retired,
+        visible_orgs.join(", "),
         cost,
         remaining
     );

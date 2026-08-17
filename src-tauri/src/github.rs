@@ -80,6 +80,7 @@ query Desk($mine: String!, $reviewing: String!, $mentioned: String!, $involved: 
   reviewing: search(query: $reviewing, type: ISSUE, first: 40) { nodes { ...pr } }
   mentioned: search(query: $mentioned, type: ISSUE, first: 40) { nodes { ...pr } }
   involved:  search(query: $involved,  type: ISSUE, first: 40) { nodes { ...pr } }
+  viewer { organizations(first: 50) { nodes { login } } }
   rateLimit { cost remaining }
 }
 "#;
@@ -173,8 +174,24 @@ pub struct RateLimit {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct OrgNode {
+    pub login: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Organizations {
+    pub nodes: Vec<OrgNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Viewer2 {
+    pub organizations: Organizations,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeskData {
+    pub viewer: Viewer2,
     pub mine: SearchResult,
     pub reviewing: SearchResult,
     pub mentioned: SearchResult,

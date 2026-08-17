@@ -34,6 +34,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -55,6 +56,10 @@ pub fn run() {
             commands::note_open,
             commands::note_save,
             commands::note_search,
+            commands::settings_read,
+            commands::settings_set_notes_dir,
+            commands::settings_clear_notes_dir,
+            commands::settings_reveal_notes,
         ])
         .setup(|app| {
             let db_path = app.path().app_data_dir()?.join("workbench.db");

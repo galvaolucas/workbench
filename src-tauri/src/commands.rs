@@ -213,6 +213,12 @@ pub struct DeskView {
     yours: Vec<db::PullRequestRow>,
     watching: Vec<db::PullRequestRow>,
     last_synced_at: Option<i64>,
+    /// Organisations this token can actually see. An org you work in that is
+    /// missing here has not approved the app, and its pull requests will be
+    /// absent from search with no error of any kind.
+    visible_orgs: Vec<String>,
+    /// Where to go and fix that.
+    org_access_url: Option<String>,
 }
 
 /// Reads local state only — never the network. The window opens instantly and
@@ -226,6 +232,8 @@ pub fn desk(state: State<AppState>) -> Result<DeskView> {
             yours: vec![],
             watching: vec![],
             last_synced_at: None,
+            visible_orgs: vec![],
+            org_access_url: None,
         });
     };
 
@@ -234,6 +242,13 @@ pub fn desk(state: State<AppState>) -> Result<DeskView> {
         yours: vec![],
         watching: vec![],
         last_synced_at: db::get_sync_meta(&db, crate::sync::DESK_KEY)?,
+        visible_orgs: db::setting_get(&db, crate::sync::VISIBLE_ORGS_KEY)?
+            .filter(|s| !s.is_empty())
+            .map(|s| s.split(',').map(str::to_string).collect())
+            .unwrap_or_default(),
+        org_access_url: crate::config::client_id().map(|id| {
+            format!("{}/settings/connections/applications/{id}", state.host.web_base)
+        }),
     };
     for pr in db::list_pull_requests(&db, account.id)? {
         match pr.lane.as_str() {
@@ -277,8 +292,12 @@ pub struct NoteView {
     open: usize,
 }
 
-fn view(db: &rusqlite::Connection, note: db::Note) -> Result<NoteView> {
-    let (previous_day, next_day) = db::note_neighbours(db, &note.day)?;
+fn view(
+    db: &rusqlite::Connection,
+    store: &crate::notes::Store,
+    note: db::Note,
+) -> Result<NoteView> {
+    let (previous_day, next_day) = crate::notes::neighbours(db, store, &note.day)?;
     let (done, open) = crate::notes::tally(&note.body);
     Ok(NoteView {
         is_today: note.day == crate::notes::today(),
@@ -297,16 +316,18 @@ fn view(db: &rusqlite::Connection, note: db::Note) -> Result<NoteView> {
 #[tauri::command]
 pub fn note_open(state: State<AppState>, day: Option<String>) -> Result<NoteView> {
     let db = state.db.lock().unwrap();
+    let store = crate::notes::store_for(&db)?;
     let day = day.unwrap_or_else(crate::notes::today);
-    let note = crate::notes::open_day(&db, &day)?;
-    view(&db, note)
+    let note = crate::notes::open_day(&db, &store, &day)?;
+    view(&db, &store, note)
 }
 
 #[tauri::command]
 pub fn note_save(state: State<AppState>, day: String, body: String) -> Result<NoteView> {
     let db = state.db.lock().unwrap();
-    let note = db::note_save(&db, &day, &body)?;
-    view(&db, note)
+    let store = crate::notes::store_for(&db)?;
+    let note = crate::notes::save(&db, &store, &day, &body)?;
+    view(&db, &store, note)
 }
 
 #[tauri::command]
@@ -316,4 +337,71 @@ pub fn note_search(state: State<AppState>, query: String) -> Result<Vec<db::Note
         return Ok(vec![]);
     }
     db::note_search(&db, query.trim())
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Settings {
+    /// Where notes are written. `None` means the app's own database.
+    notes_dir: Option<String>,
+    /// Shown so it is obvious what "app storage" actually means on disk.
+    db_path: String,
+    version: String,
+    schema_version: i64,
+    api_base: String,
+    account: Option<Account>,
+}
+
+#[tauri::command]
+pub fn settings_read(app: AppHandle, state: State<AppState>) -> Result<Settings> {
+    let db = state.db.lock().unwrap();
+    Ok(Settings {
+        notes_dir: db::setting_get(&db, crate::notes::NOTES_DIR_KEY)?,
+        db_path: db.path().unwrap_or("(memory)").to_string(),
+        version: app.package_info().version.to_string(),
+        schema_version: db::schema_version(&db)?,
+        api_base: state.host.api_base.clone(),
+        account: db::current_account(&db)?,
+    })
+}
+
+/// Hands note storage over to a folder, copying across what already exists.
+/// The path comes from the OS folder picker, so the webview cannot invent one.
+#[tauri::command]
+pub fn settings_set_notes_dir(state: State<AppState>, path: String) -> Result<usize> {
+    let dir = std::path::PathBuf::from(path);
+    if !dir.is_dir() {
+        return Err(Error::msg("that is not a folder"));
+    }
+    let db = state.db.lock().unwrap();
+    crate::notes::adopt_folder(&db, &dir)
+}
+
+#[tauri::command]
+pub fn settings_clear_notes_dir(state: State<AppState>) -> Result<()> {
+    let db = state.db.lock().unwrap();
+    crate::notes::release_folder(&db)
+}
+
+/// Reveals the notes folder (or the database) in the file manager.
+#[tauri::command]
+pub fn settings_reveal_notes(app: AppHandle, state: State<AppState>) -> Result<()> {
+    let target = {
+        let db = state.db.lock().unwrap();
+        match db::setting_get(&db, crate::notes::NOTES_DIR_KEY)? {
+            Some(dir) => dir,
+            None => db
+                .path()
+                .and_then(|p| std::path::Path::new(p).parent())
+                .map(|p| p.to_string_lossy().to_string())
+                .ok_or_else(|| Error::msg("no folder to open"))?,
+        }
+    };
+    app.opener()
+        .open_path(target, None::<&str>)
+        .map_err(|e| Error::msg(e.to_string()))
 }

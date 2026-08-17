@@ -90,6 +90,9 @@ export type Desk = {
   yours: PullRequest[];
   watching: PullRequest[];
   lastSyncedAt: number | null;
+  /** Orgs this token can reach. Anything missing is invisible to search. */
+  visibleOrgs: string[];
+  orgAccessUrl: string | null;
 };
 
 export type SyncOutcome = {
@@ -131,3 +134,23 @@ export const noteSave = (day: string, body: string) =>
 
 export const noteSearch = (query: string) =>
   invoke<{ day: string; body: string; updatedAt: number }[]>("note_search", { query });
+
+export type Settings = {
+  /** Where notes are written. null means the app's own database. */
+  notesDir: string | null;
+  dbPath: string;
+  version: string;
+  schemaVersion: number;
+  apiBase: string;
+  account: Account | null;
+};
+
+export const settingsRead = () => invoke<Settings>("settings_read");
+
+/** Returns how many notes were copied into the folder. */
+export const settingsSetNotesDir = (path: string) =>
+  invoke<number>("settings_set_notes_dir", { path });
+
+export const settingsClearNotesDir = () => invoke<void>("settings_clear_notes_dir");
+
+export const settingsRevealNotes = () => invoke<void>("settings_reveal_notes");

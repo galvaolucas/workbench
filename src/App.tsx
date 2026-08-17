@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { appInfo, authStatus, onAuthCompleted, onAuthFailed, type Account, type AppInfo } from "@/lib/ipc";
-import { Lanes, Notes, Sunrise } from "@/components/icons";
+import { Gear, Lanes, Notes, Sunrise } from "@/components/icons";
 import Connect from "@/screens/Connect";
 import Desk from "@/screens/Desk";
+import Settings from "@/screens/Settings";
 import Today from "@/screens/Today";
 
-type Tab = "today" | "desk";
+type Tab = "today" | "desk" | "settings";
 
 export default function App() {
   const [account, setAccount] = useState<Account | null>(null);
@@ -41,6 +42,7 @@ export default function App() {
       if (!e.metaKey) return;
       if (e.key === "1") setTab("today");
       if (e.key === "2") setTab("desk");
+      if (e.key === ",") setTab("settings");
     };
     window.addEventListener("keydown", onKey);
 
@@ -72,6 +74,14 @@ export default function App() {
           <Lanes />
         </button>
         <span className="rail-spacer" />
+        <button
+          className={tab === "settings" ? "rail-btn on" : "rail-btn"}
+          onClick={() => setTab("settings")}
+          title="Settings (⌘,)"
+          aria-label="Settings"
+        >
+          <Gear />
+        </button>
       </nav>
 
       {/* Both panes stay mounted: switching must never throw away a
@@ -86,6 +96,9 @@ export default function App() {
           ) : (
             <Connect info={info} error={error} onError={setError} />
           )}
+        </div>
+        <div className={tab === "settings" ? "pane" : "pane hidden"}>
+          <Settings />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Refresh, SignOut } from "@/components/icons";
+import { openExternal } from "@/lib/ipc";
 import {
   authLogout,
   desk as readDesk,
@@ -11,7 +12,14 @@ import {
   type PullRequest,
 } from "@/lib/ipc";
 
-const EMPTY: DeskData = { needsYou: [], yours: [], watching: [], lastSyncedAt: null };
+const EMPTY: DeskData = {
+  needsYou: [],
+  yours: [],
+  watching: [],
+  lastSyncedAt: null,
+  visibleOrgs: [],
+  orgAccessUrl: null,
+};
 
 type Props = {
   account: Account;
@@ -96,6 +104,29 @@ export default function Desk({ account, onSignedOut }: Props) {
           <div className="clear">
             <p className="clear-mark">Desk clear</p>
             <p className="hint">Nothing is waiting on you. Enjoy it.</p>
+
+            {/* An empty desk and a blocked one look identical from here, so
+                always say what the token can actually reach. GitHub omits
+                unapproved orgs from search silently — no error, no warning. */}
+            <div className="reach">
+              <p className="hint">
+                {data.visibleOrgs.length > 0
+                  ? `Workbench can see: ${data.visibleOrgs.join(", ")}`
+                  : "Workbench cannot see any organisation."}
+              </p>
+              {data.orgAccessUrl && (
+                <button
+                  className="btn"
+                  onClick={() => void openExternal(data.orgAccessUrl!)}
+                >
+                  Organisation access
+                </button>
+              )}
+              <p className="hint">
+                Missing an org you work in? It has to approve Workbench before its pull requests
+                appear here — until then GitHub returns nothing for them, without an error.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="lanes">

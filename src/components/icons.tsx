@@ -88,3 +88,20 @@ export function SignOut({ size = 20, className }: Props) {
     </svg>
   );
 }
+
+export function Gear({ size = 20, className }: Props) {
+  return (
+    <svg {...base(size)} className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18" />
+    </svg>
+  );
+}
+
+export function Folder({ size = 16, className }: Props) {
+  return (
+    <svg {...base(size)} className={className} aria-hidden="true">
+      <path d="M3.5 7a2 2 0 0 1 2-2h3.2l2 2.5h7.8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}

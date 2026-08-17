@@ -716,3 +716,46 @@ pub fn note_search(conn: &Connection, needle: &str) -> Result<Vec<Note>> {
         .collect::<std::result::Result<Vec<_>, _>>()?;
     Ok(rows)
 }
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+pub fn setting_get(conn: &Connection, key: &str) -> Result<Option<String>> {
+    Ok(conn
+        .query_row("SELECT value FROM settings WHERE key = ?1", [key], |r| {
+            r.get(0)
+        })
+        .optional()?)
+}
+
+pub fn setting_set(conn: &Connection, key: &str, value: &str) -> Result<()> {
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)
+         ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+        rusqlite::params![key, value],
+    )?;
+    Ok(())
+}
+
+pub fn setting_delete(conn: &Connection, key: &str) -> Result<()> {
+    conn.execute("DELETE FROM settings WHERE key = ?1", [key])?;
+    Ok(())
+}
+
+/// Every note ever written to the database — used when handing them over to a
+/// folder.
+pub fn note_all(conn: &Connection) -> Result<Vec<Note>> {
+    let mut stmt =
+        conn.prepare("SELECT day, body, updated_at FROM notes ORDER BY day")?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Note {
+                day: r.get(0)?,
+                body: r.get(1)?,
+                updated_at: r.get(2)?,
+            })
+        })?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    Ok(rows)
+}
