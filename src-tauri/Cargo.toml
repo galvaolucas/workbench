@@ -1,0 +1,53 @@
+[package]
+name = "workbench"
+version = "0.1.0"
+description = "One calm place for the pull requests that want you"
+authors = ["Lucas Galvao"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "workbench_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-log = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+log = "0.4"
+
+async-trait = "0.1"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+dotenvy = "0.15"
+tokio = { version = "1", features = ["time", "macros", "sync"] }
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Keychain backends are platform-specific; enabling them per-target keeps the
+# other platforms' dependencies out of the build entirely.
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
