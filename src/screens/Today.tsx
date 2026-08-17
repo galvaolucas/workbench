@@ -12,8 +12,30 @@ export default function Today() {
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimer = useRef<number | undefined>(undefined);
   const dayRef = useRef<string | null>(null);
+  // The edit waiting to be written, tagged with the day it was typed on.
+  const pendingRef = useRef<{ day: string; body: string } | null>(null);
+
+  /** Writes any outstanding edit immediately. Safe to call when there is none. */
+  const flush = useCallback(async () => {
+    window.clearTimeout(saveTimer.current);
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (!pending) return;
+    try {
+      const updated = await noteSave(pending.day, pending.body);
+      // Only adopt the result if we are still looking at that day.
+      if (dayRef.current === pending.day) {
+        setNote(updated);
+        setSaved(true);
+      }
+    } catch (e) {
+      setError(String(e));
+    }
+  }, []);
 
   const go = useCallback(async (day?: string) => {
+    // Never leave a day with an unwritten edit behind.
+    await flush();
     try {
       const next = await noteOpen(day);
       setNote(next);
@@ -24,7 +46,7 @@ export default function Today() {
     } catch (e) {
       setError(String(e));
     }
-  }, []);
+  }, [flush]);
 
   useEffect(() => {
     void go();
@@ -40,31 +62,24 @@ export default function Today() {
 
   // Autosave. No save button, no dirty-state prompt: the note is always saved,
   // you just occasionally see it happen.
-  const edit = useCallback((next: string) => {
-    setBody(next);
-    setSaved(false);
-    window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
+  const edit = useCallback(
+    (next: string) => {
+      // Capture the day *now*, not when the timer fires. Otherwise typing at
+      // 23:59:59 and saving 600ms later would file the words under tomorrow.
       const day = dayRef.current;
       if (!day) return;
-      noteSave(day, next)
-        .then((updated) => {
-          setNote(updated);
-          setSaved(true);
-        })
-        .catch((e) => setError(String(e)));
-    }, SAVE_DEBOUNCE_MS);
-  }, []);
 
-  // Flush on unmount so switching tabs mid-sentence never loses a keystroke.
-  useEffect(
-    () => () => {
+      setBody(next);
+      setSaved(false);
+      pendingRef.current = { day, body: next };
       window.clearTimeout(saveTimer.current);
-      const day = dayRef.current;
-      if (day && areaRef.current) void noteSave(day, areaRef.current.value);
+      saveTimer.current = window.setTimeout(() => void flush(), SAVE_DEBOUNCE_MS);
     },
-    [],
+    [flush],
   );
+
+  // Flush on unmount so quitting mid-sentence never loses a keystroke.
+  useEffect(() => () => void flush(), [flush]);
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (!e.metaKey) return;

@@ -123,6 +123,13 @@ fn migrate(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+pub fn open_memory() -> Result<Connection> {
+    let conn = Connection::open_in_memory()?;
+    migrate(&conn)?;
+    Ok(conn)
+}
+
 pub fn schema_version(conn: &Connection) -> Result<i64> {
     Ok(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)
 }

@@ -95,6 +95,36 @@ notes that are not todos";
         assert_eq!(carry_over("- [x] all done\njust notes"), "");
     }
 
+    /// The question this answers: when today ends, is today still there?
+    #[test]
+    fn a_past_day_survives_the_rollover_untouched() {
+        let conn = db::open_memory().unwrap();
+        let earlier = "- [x] shipped the release\n- [ ] chase the flaky test";
+        db::note_save(&conn, "2000-01-01", earlier).unwrap();
+
+        // Opening a new day seeds it from the last one written...
+        let fresh = open_day(&conn, &today()).unwrap();
+        assert!(fresh.body.contains("chase the flaky test"), "open work follows you");
+        assert!(!fresh.body.contains("shipped the release"), "finished work stays put");
+
+        // ...and leaves that day exactly as it was. Byte for byte.
+        let kept = db::note_get(&conn, "2000-01-01").unwrap().unwrap();
+        assert_eq!(kept.body, earlier);
+
+        // And it is still reachable by walking back from today.
+        let (previous, _) = db::note_neighbours(&conn, &today()).unwrap();
+        assert_eq!(previous.as_deref(), Some("2000-01-01"));
+    }
+
+    #[test]
+    fn an_old_day_reopened_does_not_inherit() {
+        let conn = db::open_memory().unwrap();
+        db::note_save(&conn, "2000-01-01", "- [ ] ancient business").unwrap();
+        // Looking at history should show what that day was, not today's leftovers.
+        let older = open_day(&conn, "2000-01-02").unwrap();
+        assert_eq!(older.body, "");
+    }
+
     #[test]
     fn tally_counts_both_states() {
         assert_eq!(tally("- [x] a\n- [ ] b\n- [ ] c\ntext"), (1, 2));
