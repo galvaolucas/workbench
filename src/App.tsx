@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { appInfo, authStatus, onAuthCompleted, onAuthFailed, type Account, type AppInfo } from "@/lib/ipc";
+import { Lanes, Notes, Sunrise } from "@/components/icons";
 import Connect from "@/screens/Connect";
 import Desk from "@/screens/Desk";
 import Today from "@/screens/Today";
@@ -12,7 +13,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Notes need no GitHub account, so the app opens on something usable
-  // whether or not you have ever connected one.
+  // whether or not one has ever been connected.
   const [tab, setTab] = useState<Tab>("today");
 
   useEffect(() => {
@@ -52,36 +53,40 @@ export default function App() {
 
   return (
     <div className="shell">
-      <div className="titlebar" data-tauri-drag-region>
-        <nav className="tabs">
-          <button
-            className={tab === "today" ? "tab on" : "tab"}
-            onClick={() => setTab("today")}
-            title="⌘1"
-          >
-            Today
-          </button>
-          <button
-            className={tab === "desk" ? "tab on" : "tab"}
-            onClick={() => setTab("desk")}
-            title="⌘2"
-          >
-            Desk
-          </button>
-        </nav>
-      </div>
+      <nav className="rail" data-tauri-drag-region>
+        <Sunrise size={28} className="rail-mark" />
+        <button
+          className={tab === "today" ? "rail-btn on" : "rail-btn"}
+          onClick={() => setTab("today")}
+          title="Today (⌘1)"
+          aria-label="Today"
+        >
+          <Notes />
+        </button>
+        <button
+          className={tab === "desk" ? "rail-btn on" : "rail-btn"}
+          onClick={() => setTab("desk")}
+          title="Desk (⌘2)"
+          aria-label="Desk"
+        >
+          <Lanes />
+        </button>
+        <span className="rail-spacer" />
+      </nav>
 
-      {/* Both panes stay mounted: switching tabs must not throw away a
-          half-typed note or re-fetch the Desk. */}
-      <div className={tab === "today" ? "body full" : "body full hidden"}>
-        <Today />
-      </div>
-      <div className={tab === "desk" ? (account ? "body full" : "body") : "body full hidden"}>
-        {!ready ? null : account ? (
-          <Desk account={account} onSignedOut={() => setAccount(null)} />
-        ) : (
-          <Connect info={info} error={error} onError={setError} />
-        )}
+      {/* Both panes stay mounted: switching must never throw away a
+          half-typed note or refetch the Desk. */}
+      <div className="main">
+        <div className={tab === "today" ? "pane" : "pane hidden"}>
+          <Today />
+        </div>
+        <div className={tab === "desk" ? "pane" : "pane hidden"}>
+          {!ready ? null : account ? (
+            <Desk account={account} onSignedOut={() => setAccount(null)} />
+          ) : (
+            <Connect info={info} error={error} onError={setError} />
+          )}
+        </div>
       </div>
     </div>
   );

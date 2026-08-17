@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "@/components/icons";
 import { noteOpen, noteSave, type Note } from "@/lib/ipc";
 
 const SAVE_DEBOUNCE_MS = 600;
@@ -109,55 +110,61 @@ export default function Today() {
   }
 
   return (
-    <div className="today">
-      <header className="today-head" data-tauri-drag-region>
-        <div className="today-when">
-          <h2 className="today-date">{note ? describeDay(note.day) : ""}</h2>
+    <>
+      <header className="topbar" data-tauri-drag-region>
+        <h1 className="page-title">{note ? describeDay(note.day) : ""}</h1>
+        <div className="topbar-side">
           {note && !note.isToday && (
-            <button className="btn quiet" onClick={() => void go()}>
+            <button className="btn" onClick={() => void go()}>
               Back to today
             </button>
           )}
-        </div>
-        <div className="row">
           <button
-            className="btn quiet"
+            className="icon-btn"
             onClick={() => note?.previousDay && void go(note.previousDay)}
             disabled={!note?.previousDay}
             title="Previous day (⌘[)"
           >
-            ←
+            <ChevronLeft />
           </button>
           <button
-            className="btn quiet"
+            className="icon-btn"
             onClick={() => note?.nextDay && void go(note.nextDay)}
             disabled={!note?.nextDay}
             title="Next day (⌘])"
           >
-            →
+            <ChevronRight />
           </button>
         </div>
       </header>
 
-      {error && <p className="error desk-error">{error}</p>}
+      <div className="content">
+        {error && <p className="error">{error}</p>}
 
-      <textarea
-        ref={areaRef}
-        className="note"
-        value={body}
-        onChange={(e) => edit(e.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder={"What needs doing today?\n\n- [ ] start here  (⌘L toggles a line)"}
-        spellCheck={false}
-      />
-
-      <footer className="today-foot">
-        <span className="tally">
-          {note ? `${note.done} done · ${note.open} open` : ""}
-        </span>
-        <span className="saved">{saved ? "saved" : "saving…"}</span>
-      </footer>
-    </div>
+        <div className="card note-card">
+          <textarea
+            ref={areaRef}
+            className="note"
+            value={body}
+            onChange={(e) => edit(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={"What needs doing today?\n\n- [ ] start here  (⌘L toggles a line)"}
+            spellCheck={false}
+          />
+          <footer className="note-foot">
+            <span className="tallies">
+              {note && (
+                <>
+                  <span className="chip ok">{note.done} done</span>
+                  <span className="chip warn">{note.open} open</span>
+                </>
+              )}
+            </span>
+            <span className="saved">{saved ? "saved" : "saving…"}</span>
+          </footer>
+        </div>
+      </div>
+    </>
   );
 }
 

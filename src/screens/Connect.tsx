@@ -41,8 +41,8 @@ export default function Connect({ info, error, onError }: Props) {
   }
 
   return (
-    <div className="pane">
-      <h1 className="mark">
+    <div className="connect">
+      <h1 className="connect-mark">
         Everything that <em>you want</em>,
         <br />
         in one place.

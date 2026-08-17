@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Refresh, SignOut } from "@/components/icons";
 import {
   authLogout,
   desk as readDesk,
@@ -64,46 +65,47 @@ export default function Desk({ account, onSignedOut }: Props) {
   const total = data.needsYou.length + data.yours.length + data.watching.length;
 
   return (
-    <div className="desk">
-      {/* Draggable too: children (buttons) keep their own clicks, so the empty
-          space between them behaves like a native title bar. */}
-      <header className="desk-head" data-tauri-drag-region>
-        <div className="who-mini">
-          {account.avatarUrl && <img className="avatar-sm" src={account.avatarUrl} alt="" />}
-          <span className="login">@{account.login}</span>
-        </div>
-        <div className="row">
-          <span className="synced">{describeSync(data.lastSyncedAt, syncing)}</span>
-          <button className="btn" onClick={sync} disabled={syncing}>
-            {syncing ? "Syncing…" : "Refresh"}
+    <>
+      {/* Draggable: children keep their own clicks, so the empty space
+          between them behaves like a native title bar. */}
+      <header className="topbar" data-tauri-drag-region>
+        <h1 className="page-title">Desk</h1>
+        <div className="topbar-side">
+          <span className="meta">{describeSync(data.lastSyncedAt, syncing)}</span>
+          <button className="icon-btn" onClick={sync} disabled={syncing} title="Refresh">
+            <Refresh />
+          </button>
+          <span className="who-mini">
+            {account.avatarUrl && <img className="avatar-sm" src={account.avatarUrl} alt="" />}
+            @{account.login}
+          </span>
+          <button
+            className="icon-btn"
+            onClick={() => authLogout().then(onSignedOut)}
+            title="Sign out"
+          >
+            <SignOut size={16} />
           </button>
         </div>
       </header>
 
-      {error && <p className="error desk-error">{error}</p>}
+      <div className="content">
+        {error && <p className="error">{error}</p>}
 
-      {loaded && total === 0 && !syncing ? (
-        <div className="clear">
-          <p className="clear-mark">Desk clear</p>
-          <p className="hint">Nothing is waiting on you. Enjoy it.</p>
-        </div>
-      ) : (
-        <div className="lanes">
-          <Lane title="Needs you" hot items={data.needsYou} />
-          <Lane title="Yours in flight" items={data.yours} />
-          <Lane title="Watching" items={data.watching} />
-        </div>
-      )}
-
-      <footer className="desk-foot">
-        <button
-          className="btn quiet"
-          onClick={() => authLogout().then(onSignedOut)}
-        >
-          Sign out
-        </button>
-      </footer>
-    </div>
+        {loaded && total === 0 && !syncing ? (
+          <div className="clear">
+            <p className="clear-mark">Desk clear</p>
+            <p className="hint">Nothing is waiting on you. Enjoy it.</p>
+          </div>
+        ) : (
+          <div className="lanes">
+            <Lane title="Needs you" hot items={data.needsYou} />
+            <Lane title="Yours in flight" items={data.yours} />
+            <Lane title="Watching" items={data.watching} />
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -115,7 +117,7 @@ function Lane({ title, items, hot }: { title: string; items: PullRequest[]; hot?
         <span className="lane-count">{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <p className="lane-empty">—</p>
+        <p className="lane-empty">Nothing here</p>
       ) : (
         items.map((pr) => <Card key={pr.id} pr={pr} />)
       )}
@@ -136,12 +138,12 @@ function Card({ pr }: { pr: PullRequest }) {
       <span className="pr-title">{pr.title}</span>
       <span className="pr-meta">
         {pr.author && !pr.isAuthor && <span>@{pr.author}</span>}
-        {pr.isDraft && <span className="chip">draft</span>}
+        {pr.isDraft && <span className="chip plain">draft</span>}
         <span className="add">+{pr.additions}</span>
         <span className="del">−{pr.deletions}</span>
         {checks && <span className={`chip ${checks.tone}`}>{checks.label}</span>}
         {review && <span className={`chip ${review.tone}`}>{review.label}</span>}
-        {pr.commentCount > 0 && <span>{pr.commentCount} 💬</span>}
+        {pr.commentCount > 0 && <span>{pr.commentCount} comments</span>}
         <span className="age">{age(pr.updatedAt)}</span>
       </span>
     </button>
